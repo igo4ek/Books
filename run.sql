@@ -10,32 +10,32 @@ CREATE TABLE books (
  title             VARCHAR(255) CHARACTER SET utf8 ,
  page_count        INTEGER(5) NOT NULL,
  publication_date  DATE
-)ENGINE InnoDB;
+)ENGINE MEMORY;
 
 CREATE TABLE authors (
  id                INTEGER PRIMARY KEY,
  author_name       VARCHAR(100) CHARACTER SET utf8 ,
  author_surname    VARCHAR(100) CHARACTER SET utf8
-)ENGINE InnoDB;
+)ENGINE MEMORY;;
 
 CREATE TABLE genres(
  id                INTEGER PRIMARY KEY,
  genre_name        VARCHAR(30) CHARACTER SET utf8
-)ENGINE InnoDB;
+)ENGINE MEMORY;;
 
 CREATE TABLE books_authors(
  author_id         INTEGER NOT NULL,
  book_id           INTEGER NOT NULL,
  FOREIGN KEY (author_id) REFERENCES authors(id),
  FOREIGN KEY (book_id)   REFERENCES books(id)
-)ENGINE InnoDB;
+)ENGINE MEMORY;;
 
 CREATE TABLE books_genres(
  book_id           INTEGER NOT NULL,
  genre_id          INTEGER NOT NULL,
  FOREIGN KEY (genre_id) REFERENCES genres(id),
  FOREIGN KEY (book_id)  REFERENCES books(id)
-)ENGINE InnoDB;
+)ENGINE MEMORY;;
 
 
 insert into authors(id, author_name, author_surname)
@@ -110,21 +110,21 @@ FROM books JOIN books_authors JOIN authors JOIN books_genres JOIN genres
      books.id=books_genres.book_id  AND genres.id =books_genres.genre_id
 WHERE genres.genre_name = 'фантастика';
 
-/*4. Вывести автора, который написал больше всего книг.*/
-DROP TABLE  IF EXISTS t1;
-CREATE TABLE t1 (
- id                INTEGER,
- author_name       VARCHAR(100) CHARACTER SET utf8 ,
- author_surname    VARCHAR(100) CHARACTER SET utf8
-)ENGINE InnoDB;
 
-INSERT INTO t1 SELECT authors.id, authors.author_name, authors.author_surname
-               FROM books JOIN books_authors JOIN authors
-                 ON books.id=books_authors.book_id AND authors.id=books_authors.author_id ;
-
-SELECT author_name, author_surname FROM( SELECT id, author_name, author_surname, count(*) AS countId FROM t1 GROUP BY id )set_1
- JOIN( SELECT max(countId) AS maxId FROM (SELECT id, count(*) AS countId FROM t1 GROUP BY id) set_temp)set_2
-  ON set_1.countId = set_2.maxId;
-DROP TABLE  t1;
-
-
+/*4. Вывести автора, который написал больше всего книг.ПОПЫТКА #2*/
+SELECT author_name, author_surname FROM authors
+WHERE authors.id  IN
+      (
+        SELECT books_authors.author_id FROM books_authors
+        GROUP BY books_authors.author_id
+        HAVING SUM(1) = (
+                            SELECT MAX(table_summ.summ)
+                            FROM
+                              (
+                                SELECT author_name, author_surname, SUM(1) AS summ
+                                FROM books_authors, authors
+                                WHERE authors.id  = books_authors.author_id
+                                GROUP BY authors.id
+                              ) AS table_summ
+                          )
+      );
